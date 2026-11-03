@@ -5,11 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/postbuild.mjs",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "db:login": "supabase login",
+    "db:link": "supabase link --project-ref cecjzlrwfmrqztspyehp",
+    "db:push": "supabase db push --remote",
+    "db:status": "supabase migration list --remote",
+    "db:new": "supabase migration new",
+    "db:seed:build": "node scripts/build-seed.mjs",
+    "db:seed": "supabase db push --remote --include-seed"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
     "@tailwindcss/vite": "^4.3.0",
     "lucide-react": "^1.17.0",
     "react": "^19.2.6",
@@ -26,6 +34,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "supabase": "^3.0.0",
     "vite": "^8.0.12"
   }
 }

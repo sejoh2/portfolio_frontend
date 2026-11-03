@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import AdminList from "../AdminList";
+import FormButtons from "../FormButtons";
+import { nextSortOrder, splitList } from "../adminUtils";
 import SectionHeader from "../SectionHeader";
+
+const COLORS = ["blue", "green", "purple"];
+const initialForm = { title: "", color: "blue", skills: "" };
 
 const SkillGroupsAdmin = () => {
   const [items, setItems] = useState([]);
-  const [form, setForm] = useState({
-    title: "",
-    color: "blue",
-    skills: "",
-    sortOrder: 0,
-    published: true,
-  });
+  const [form, setForm] = useState(initialForm);
+  const [editingId, setEditingId] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const loadItems = async () => {
     const result = await api.list("skill-groups");
@@ -18,51 +20,65 @@ const SkillGroupsAdmin = () => {
   };
 
   useEffect(() => {
-    loadItems();
+    api.list("skill-groups").then((result) => setItems(result.data || []));
   }, []);
+
+  const startEdit = (item) => {
+    setEditingId(item.id);
+    setForm({ title: item.title, color: item.color, skills: (item.skills || []).join(", ") });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const cancel = () => {
+    setEditingId(null);
+    setForm(initialForm);
+  };
 
   const submit = async (event) => {
     event.preventDefault();
-
-    await api.create("skill-groups", {
-      ...form,
-      skills: form.skills.split(",").map((item) => item.trim()).filter(Boolean),
-    });
-
-    setForm({ title: "", color: "blue", skills: "", sortOrder: 0, published: true });
-    await loadItems();
-  };
-
-  const remove = async (id) => {
-    if (!confirm("Delete this skill group?")) return;
-    await api.remove("skill-groups", id);
-    await loadItems();
+    const payload = { ...form, skills: splitList(form.skills) };
+    setSaving(true);
+    try {
+      if (editingId) await api.update("skill-groups", editingId, payload);
+      else await api.create("skill-groups", { ...payload, sortOrder: nextSortOrder(items) });
+      cancel();
+      await loadItems();
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <section>
-      <SectionHeader title="Skills" description="Add grouped skills as comma-separated values." />
+      <SectionHeader title="Skills" description="Grouped skills, comma separated." />
 
       <form onSubmit={submit} className="mb-6 grid gap-3 rounded-lg border border-gray-200 bg-white p-5 md:grid-cols-2">
-        <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Group title" className="rounded-md border px-3 py-2 text-sm" />
-        <input value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} placeholder="Color" className="rounded-md border px-3 py-2 text-sm" />
+        <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Group title" className="rounded-md border px-3 py-2 text-sm" />
+        <select value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className="rounded-md border px-3 py-2 text-sm">
+          {COLORS.map((color) => (
+            <option key={color} value={color}>Colour: {color}</option>
+          ))}
+        </select>
         <input value={form.skills} onChange={(e) => setForm({ ...form, skills: e.target.value })} placeholder="React, Node.js, Tailwind CSS" className="rounded-md border px-3 py-2 text-sm md:col-span-2" />
-        <button className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white md:col-span-2">Add Skill Group</button>
+        <FormButtons editing={Boolean(editingId)} addLabel="Add Skill Group" onCancel={cancel} saving={saving} />
       </form>
 
-      <div className="grid gap-3">
-        {items.map((item) => (
-          <div key={item.id} className="rounded-lg border border-gray-200 bg-white p-4">
-            <div className="flex justify-between gap-4">
-              <div>
-                <h3 className="font-semibold text-gray-900">{item.title}</h3>
-                <p className="mt-2 text-sm text-gray-600">{(item.skills || []).join(", ")}</p>
-              </div>
-              <button onClick={() => remove(item.id)} className="text-sm font-semibold text-red-600">Delete</button>
-            </div>
+      <AdminList
+        resource="skill-groups"
+        items={items}
+        reload={loadItems}
+        onEdit={startEdit}
+        editingId={editingId}
+        deleteLabel="skill group"
+        renderItem={(item) => (
+          <div className="p-4">
+            <h3 className="font-semibold text-gray-900">{item.title}</h3>
+            <p className="mt-2 text-sm text-gray-600">{(item.skills || []).join(", ")}</p>
           </div>
-        ))}
-      </div>
+        )}
+      />
     </section>
   );
 };

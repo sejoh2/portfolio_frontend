@@ -1,0 +1,22 @@
+name = "portfolio-uploads"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+# Create the bucket first:  npx wrangler r2 bucket create portfolio-assets
+# Then enable public access (r2.dev subdomain or a custom domain) in the Cloudflare dashboard.
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "portfolio-assets"
+
+[vars]
+SUPABASE_URL = "https://cecjzlrwfmrqztspyehp.supabase.co"
+# Public base URL of the bucket, e.g. https://pub-xxxx.r2.dev or https://assets.yourdomain.com
+PUBLIC_BASE_URL = "https://pub-62e18cb316424fe38f02076e0ebb9da9.r2.dev"
+# Comma-separated list of sites allowed to call this Worker
+ALLOWED_ORIGINS = "http://localhost:5173"
+
+# Secret (not committed):  npx wrangler secret put SUPABASE_ANON_KEY
+
+# Daily keep-alive ping so the Supabase free tier doesn't pause the project
+[triggers]
+crons = ["0 6 * * *"]

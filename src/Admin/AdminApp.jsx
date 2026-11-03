@@ -10,6 +10,8 @@ import CertificationsAdmin from "./sections/CertificationsAdmin";
 import ExperienceAdmin from "./sections/ExperienceAdmin";
 import ProjectsAdmin from "./sections/ProjectsAdmin";
 import ContactProfileAdmin from "./sections/ContactProfileAdmin";
+import MessagesAdmin from "./sections/MessagesAdmin";
+import BlogAdmin from "./sections/BlogAdmin";
 
 const AdminApp = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(Boolean(getToken()));
@@ -28,6 +30,8 @@ const AdminApp = () => {
     experience: <ExperienceAdmin />,
     projects: <ProjectsAdmin />,
     contact: <ContactProfileAdmin />,
+    messages: <MessagesAdmin />,
+    blog: <BlogAdmin />,
   };
 
   return (

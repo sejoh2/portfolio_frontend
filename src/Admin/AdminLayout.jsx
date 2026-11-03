@@ -8,7 +8,9 @@ const navItems = [
   ["Certifications", "certifications"],
   ["Experience", "experience"],
   ["Projects", "projects"],
-  ["Contact", "contact"],
+  ["Blog", "blog"],
+  ["Profile & Contact", "contact"],
+  ["Messages", "messages"],
 ];
 
 const AdminLayout = ({ activeSection, setActiveSection, onLogout, children }) => {

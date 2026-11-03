@@ -1,19 +1,19 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import AdminList from "../AdminList";
+import FormButtons from "../FormButtons";
+import { nextSortOrder } from "../adminUtils";
 import SectionHeader from "../SectionHeader";
 
-const initialForm = {
-  title: "",
-  description: "",
-  icon: "code",
-  color: "blue",
-  sortOrder: 0,
-  published: true,
-};
+const ICONS = ["wallet", "globe", "smartphone", "bot", "code", "database", "server", "cloud", "shield", "workflow", "rocket", "lightbulb", "brain", "bar-chart"];
+const COLORS = ["blue", "green", "purple", "orange"];
+const initialForm = { title: "", description: "", icon: "code", color: "blue" };
 
 const BuildItemsAdmin = () => {
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(initialForm);
+  const [editingId, setEditingId] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const loadItems = async () => {
     const result = await api.list("build-items");
@@ -21,52 +21,72 @@ const BuildItemsAdmin = () => {
   };
 
   useEffect(() => {
-    loadItems();
+    api.list("build-items").then((result) => setItems(result.data || []));
   }, []);
 
-  const updateField = (field, value) => {
-    setForm((current) => ({ ...current, [field]: value }));
+  const updateField = (field, value) => setForm((current) => ({ ...current, [field]: value }));
+
+  const startEdit = (item) => {
+    setEditingId(item.id);
+    setForm({ title: item.title, description: item.description, icon: item.icon, color: item.color });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const cancel = () => {
+    setEditingId(null);
+    setForm(initialForm);
   };
 
   const submit = async (event) => {
     event.preventDefault();
-    await api.create("build-items", form);
-    setForm(initialForm);
-    await loadItems();
-  };
-
-  const remove = async (id) => {
-    if (!confirm("Delete this item?")) return;
-    await api.remove("build-items", id);
-    await loadItems();
+    setSaving(true);
+    try {
+      if (editingId) await api.update("build-items", editingId, form);
+      else await api.create("build-items", { ...form, sortOrder: nextSortOrder(items) });
+      cancel();
+      await loadItems();
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <section>
-      <SectionHeader title="What I Build" description="Manage the About Me capability cards." />
+      <SectionHeader title="What I Build" description="The capability cards in the About section." />
 
       <form onSubmit={submit} className="mb-6 grid gap-3 rounded-lg border border-gray-200 bg-white p-5 md:grid-cols-2">
-        <input value={form.title} onChange={(e) => updateField("title", e.target.value)} placeholder="Title" className="rounded-md border px-3 py-2 text-sm" />
-        <input value={form.icon} onChange={(e) => updateField("icon", e.target.value)} placeholder="Icon name" className="rounded-md border px-3 py-2 text-sm" />
-        <input value={form.color} onChange={(e) => updateField("color", e.target.value)} placeholder="Color" className="rounded-md border px-3 py-2 text-sm" />
-        <input type="number" value={form.sortOrder} onChange={(e) => updateField("sortOrder", Number(e.target.value))} placeholder="Sort order" className="rounded-md border px-3 py-2 text-sm" />
-        <textarea value={form.description} onChange={(e) => updateField("description", e.target.value)} placeholder="Description" className="rounded-md border px-3 py-2 text-sm md:col-span-2" />
-        <button className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white md:col-span-2">Add Item</button>
+        <input required value={form.title} onChange={(e) => updateField("title", e.target.value)} placeholder="Title" className="rounded-md border px-3 py-2 text-sm md:col-span-2" />
+        <select value={form.icon} onChange={(e) => updateField("icon", e.target.value)} className="rounded-md border px-3 py-2 text-sm">
+          {ICONS.map((icon) => (
+            <option key={icon} value={icon}>Icon: {icon}</option>
+          ))}
+        </select>
+        <select value={form.color} onChange={(e) => updateField("color", e.target.value)} className="rounded-md border px-3 py-2 text-sm">
+          {COLORS.map((color) => (
+            <option key={color} value={color}>Colour: {color}</option>
+          ))}
+        </select>
+        <textarea value={form.description} onChange={(e) => updateField("description", e.target.value)} placeholder="Description" rows={3} className="rounded-md border px-3 py-2 text-sm md:col-span-2" />
+        <FormButtons editing={Boolean(editingId)} addLabel="Add Item" onCancel={cancel} saving={saving} />
       </form>
 
-      <div className="grid gap-3">
-        {items.map((item) => (
-          <div key={item.id} className="rounded-lg border border-gray-200 bg-white p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="font-semibold text-gray-900">{item.title}</h3>
-                <p className="mt-1 text-sm text-gray-600">{item.description}</p>
-              </div>
-              <button onClick={() => remove(item.id)} className="text-sm font-semibold text-red-600">Delete</button>
-            </div>
+      <AdminList
+        resource="build-items"
+        items={items}
+        reload={loadItems}
+        onEdit={startEdit}
+        editingId={editingId}
+        deleteLabel="card"
+        renderItem={(item) => (
+          <div className="p-4">
+            <h3 className="font-semibold text-gray-900">{item.title}</h3>
+            <p className="mt-1 text-sm text-gray-600">{item.description}</p>
+            <p className="mt-2 text-xs text-gray-400">{item.icon} · {item.color}</p>
           </div>
-        ))}
-      </div>
+        )}
+      />
     </section>
   );
 };

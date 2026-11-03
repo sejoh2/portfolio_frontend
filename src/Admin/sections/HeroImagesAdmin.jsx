@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import AdminList from "../AdminList";
 import SectionHeader from "../SectionHeader";
 
 const HeroImagesAdmin = () => {
@@ -14,7 +15,7 @@ const HeroImagesAdmin = () => {
   };
 
   useEffect(() => {
-    loadItems();
+    api.list("hero-images").then((result) => setItems(result.data || []));
   }, []);
 
   const uploadImages = async (event) => {
@@ -44,9 +45,10 @@ const HeroImagesAdmin = () => {
     }
   };
 
-  const deleteItem = async (id) => {
-    if (!confirm("Delete this hero image?")) return;
-    await api.remove("hero-images", id);
+  const editCaption = async (item) => {
+    const title = prompt("Caption shown on the image (leave empty for none):", item.title || "");
+    if (title === null) return;
+    await api.update("hero-images", item.id, { title: title.trim() || null });
     await loadItems();
   };
 
@@ -54,37 +56,23 @@ const HeroImagesAdmin = () => {
     <section>
       <SectionHeader
         title="Hero Images"
-        description="Upload up to 3 hero carousel images. The backend keeps the latest 3."
+        description="Optional. With no hero images, the hero shows your photo and the 'Currently' card. Upload up to 3 to show a carousel instead."
       />
 
-      <form
-        onSubmit={uploadImages}
-        className="mb-6 rounded-lg border border-gray-200 bg-white p-5"
-      >
-       <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center hover:bg-gray-100">
-  <span className="text-sm font-semibold text-gray-900">
-    Choose hero images
-  </span>
-  <span className="mt-1 text-xs text-gray-500">
-    Select up to 3 images
-  </span>
+      <form onSubmit={uploadImages} className="mb-6 rounded-lg border border-gray-200 bg-white p-5">
+        <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center hover:bg-gray-100">
+          <span className="text-sm font-semibold text-gray-900">Choose hero images</span>
+          <span className="mt-1 text-xs text-gray-500">Select up to 3 images</span>
+          <input type="file" accept="image/*" multiple onChange={(event) => setFiles(Array.from(event.target.files || []))} className="sr-only" />
+        </label>
 
-  <input
-    type="file"
-    accept="image/*"
-    multiple
-    onChange={(event) => setFiles(Array.from(event.target.files || []))}
-    className="sr-only"
-  />
-</label>
-
-{files.length > 0 && (
-  <div className="mt-3 text-sm text-gray-600">
-    {files.slice(0, 3).map((file) => (
-      <p key={file.name}>{file.name}</p>
-    ))}
-  </div>
-)}
+        {files.length > 0 && (
+          <div className="mt-3 text-sm text-gray-600">
+            {files.slice(0, 3).map((file) => (
+              <p key={file.name}>{file.name}</p>
+            ))}
+          </div>
+        )}
 
         <button
           type="submit"
@@ -97,24 +85,20 @@ const HeroImagesAdmin = () => {
         {message && <p className="mt-3 text-sm text-gray-600">{message}</p>}
       </form>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        {items.map((item) => (
-          <div key={item.id} className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+      <AdminList
+        resource="hero-images"
+        items={items}
+        reload={loadItems}
+        onEdit={editCaption}
+        deleteLabel="hero image"
+        grid="grid gap-4 md:grid-cols-3"
+        renderItem={(item) => (
+          <>
             <img src={item.src} alt="" className="h-44 w-full object-cover" />
-            <div className="flex items-center justify-between p-4">
-              <span className="text-xs text-gray-500">
-                {item.published ? "Published" : "Hidden"}
-              </span>
-              <button
-                onClick={() => deleteItem(item.id)}
-                className="rounded-md border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+            <p className="px-4 pt-3 text-xs text-gray-600">{item.title || "No caption"}</p>
+          </>
+        )}
+      />
     </section>
   );
 };

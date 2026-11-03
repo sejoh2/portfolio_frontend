@@ -45,8 +45,8 @@ const AdminLogin = ({ onLogin }) => {
 
         <div className="mt-6 space-y-4">
           <input
-            type="text"
-            placeholder="Username"
+            type="email"
+            placeholder="Email"
             value={form.username}
             onChange={(event) => updateField("username", event.target.value)}
             className="w-full rounded-md border border-gray-300 px-4 py-3 text-sm outline-none focus:border-blue-500"
